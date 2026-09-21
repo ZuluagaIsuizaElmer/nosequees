@@ -1,30 +1,405 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0; url=./flores.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flores Amarillas Mágicas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Family -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
     <style>
-      html, body {
-        margin: 0;
-        height: 100%;
-        background: #111827;
-        color: #facc15;
-        font-family: Arial, sans-serif;
-      }
-      body {
-        display: grid;
-        place-items: center;
-      }
-      a {
-        color: #facc15;
-        text-decoration: none;
-        font-weight: 700;
-      }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #111827 0%, #1f1906 50%, #2d2203 100%);
+            overflow-x: hidden;
+        }
+
+        .font-dancing {
+            font-family: 'Dancing Script', cursive;
+        }
+
+        /* Ambient Glow Effects */
+        .glow-text {
+            text-shadow: 0 0 15px rgba(250, 204, 21, 0.8), 0 0 30px rgba(234, 179, 8, 0.5);
+        }
+
+        .glow-card {
+            box-shadow: 0 0 25px rgba(234, 179, 8, 0.25);
+            backdrop-filter: blur(12px);
+        }
+
+        /* Flower Swaying Animation */
+        @keyframes sway {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        .sway-animation {
+            transform-origin: bottom center;
+            animation: sway 4s ease-in-out infinite;
+        }
+
+        /* Sparkle Particle Animation */
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.8) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-120px) scale(1.3) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .sparkle-particle {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUp 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        #flowerContainer {
+            position: relative;
+            width: 100%;
+            min-height: 38vh;
+            overflow: hidden;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.02), rgba(234,179,8,0.08));
+            border-radius: 2rem;
+        }
+
+        .flower-meadow {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .flower-wrap {
+            position: absolute;
+            bottom: 0;
+            pointer-events: auto;
+            transform-origin: bottom center;
+            animation: sway 4s ease-in-out infinite;
+            filter: drop-shadow(0 10px 18px rgba(250, 204, 21, 0.26));
+        }
+
+        .flower-wrap:hover {
+            transform: translateY(-4px) scale(1.05);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #eab308;
+            border-radius: 4px;
+        }
     </style>
-  </head>
-  <body>
-    <p>Redirigiendo a <a href="./flores.html">la página de flores</a>...</p>
-  </body>
+</head>
+<body class="text-white min-h-screen relative flex flex-col justify-between select-none">
+
+    <canvas id="bgCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+    <div id="interactiveArea" class="fixed inset-0 z-10 cursor-pointer"></div>
+
+    <header class="relative z-20 p-4 md:p-6 flex justify-between items-center max-w-6xl mx-auto w-full">
+        <div class="flex items-center gap-2">
+            <i data-lucide="sun" class="w-8 h-8 text-yellow-400 animate-spin" style="animation-duration: 12s;"></i>
+            <span class="font-bold text-xl tracking-wider bg-gradient-to-r from-yellow-300 to-amber-500 bg-clip-text text-transparent">
+                Jardín Dorado
+            </span>
+        </div>
+
+        <div class="glow-card bg-amber-950/40 border border-yellow-500/30 rounded-full px-4 py-2 flex items-center gap-3">
+            <button id="playBtn" class="bg-yellow-400 hover:bg-yellow-300 text-slate-900 p-2.5 rounded-full transition-all duration-300 transform active:scale-95 shadow-lg shadow-yellow-500/50">
+                <i data-lucide="play" id="playIcon" class="w-5 h-5 fill-current"></i>
+            </button>
+            <div class="hidden sm:flex flex-col">
+                <span class="text-xs font-semibold text-yellow-200">Flores Amarillas</span>
+                <span class="text-[10px] text-yellow-400/80">Música de fondo</span>
+            </div>
+            <i data-lucide="music" class="w-4 h-4 text-yellow-400 animate-bounce"></i>
+        </div>
+    </header>
+
+    <audio id="bgAudio" loop preload="auto">
+        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-piano-112189.mp3" type="audio/mpeg">
+    </audio>
+
+    <main class="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-4 py-8 max-w-4xl mx-auto">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs sm:text-sm font-medium mb-6 animate-pulse">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Toca la pantalla para hacer florecer la magia =)</span>
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+
+        <h1 class="font-dancing text-4xl sm:text-6xl md:text-7xl font-bold text-yellow-300 mb-6 glow-text tracking-wide leading-tight">
+            "Para mi amor mas sincero , gracias por todo "
+        </h1>
+
+        <p class="text-amber-100/90 text-sm sm:text-base md:text-lg max-w-xl mx-auto mb-8 font-light leading-relaxed">
+        Te mereces eso y mucho mas mi amor eterno
+        </p>
+
+        <div class="flex flex-wrap gap-4 justify-center items-center">
+            <button id="surpriseBtn" class="glow-card bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-slate-950 font-bold px-6 py-3.5 rounded-full shadow-lg shadow-yellow-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2">
+                <i data-lucide="gift" class="w-5 h-5"></i>
+                <span>Más flores</span>
+            </button>
+            <button id="clearBtn" class="bg-black/40 hover:bg-black/60 text-yellow-200 border border-yellow-500/30 px-5 py-3.5 rounded-full backdrop-blur-md transition-all duration-300 text-sm flex items-center gap-2">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                <span>Reiniciar Jardín</span>
+            </button>
+        </div>
+    </main>
+
+    <section class="relative z-20 w-full overflow-hidden pt-12 pb-6">
+        <div id="flowerContainer" class="relative w-full h-64 sm:h-80 md:h-96 flex items-end justify-center px-4">
+        </div>
+    </section>
+
+    <footer class="relative z-20 py-4 text-center text-xs text-yellow-500/60 border-t border-yellow-500/10">
+        <p>i love you</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        const audio = document.getElementById('bgAudio');
+        const playBtn = document.getElementById('playBtn');
+        const playIcon = document.getElementById('playIcon');
+        let isPlaying = false;
+
+        playBtn.addEventListener('click', toggleAudio);
+
+        function toggleAudio() {
+            if (isPlaying) {
+                audio.pause();
+                playIcon.setAttribute('data-lucide', 'play');
+            } else {
+                audio.play().then(() => {
+                    playIcon.setAttribute('data-lucide', 'pause');
+                }).catch(() => {
+                    console.log("Audio play blocked");
+                });
+            }
+            isPlaying = !isPlaying;
+            lucide.createIcons();
+        }
+
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height + Math.random() * 100;
+                this.size = Math.random() * 3 + 1;
+                this.speedY = Math.random() * 1.5 + 0.5;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.opacity = Math.random() * 0.7 + 0.3;
+            }
+            update() {
+                this.y -= this.speedY;
+                this.x += this.speedX;
+                if (this.y < -10) this.reset();
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(250, 204, 21, ${this.opacity})`;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#facc15';
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 60; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        function createRealisticFlowerSVG(scale = 1) {
+            const size = 50 * scale;
+            const petalCount = 10 + Math.floor(Math.random() * 6);
+            const petalHue = 38 + Math.floor(Math.random() * 18);
+            const centerColor = ['#7c2d12', '#78350f', '#8b5a2b'][Math.floor(Math.random() * 3)];
+            const petalColor = `hsl(${petalHue}, 90%, ${55 + Math.random() * 10}%)`;
+            const stemColor = ['#16a34a', '#22c55e', '#4ade80'][Math.floor(Math.random() * 3)];
+
+            return `
+                <svg viewBox="0 0 120 160" width="${size}" height="${size * 1.4}" class="drop-shadow-[0_0_18px_rgba(250,204,21,0.5)] transition-transform duration-500">
+                    <g transform="translate(60,100)">
+                        <path d="M 0 60 C 12 26, 10 8, 0 0 C -10 8, -12 26, 0 60" fill="${stemColor}" opacity="0.9"/>
+                        <path d="M 0 42 C -28 28, -26 10, -12 2 C -2 18, 0 28, 0 42" fill="${stemColor}" opacity="0.8"/>
+                        <path d="M 0 38 C 28 26, 30 12, 16 2 C 4 18, 2 28, 0 38" fill="${stemColor}" opacity="0.8"/>
+                        <g transform="translate(0,-18)">
+                            ${Array.from({ length: petalCount }).map((_, i) => {
+                                const angle = (360 / petalCount) * i;
+                                const x = 0;
+                                const y = 0;
+                                return `
+                                    <ellipse cx="${x}" cy="${y - 12}" rx="11" ry="18" fill="${petalColor}" transform="rotate(${angle})" stroke="#facc15" stroke-width="1.2"/>
+                                `;
+                            }).join('')}
+                            <circle cx="0" cy="0" r="12" fill="${centerColor}" stroke="#fef3c7" stroke-width="2" />
+                            <circle cx="0" cy="0" r="7" fill="#fbbf24" opacity="0.8"/>
+                        </g>
+                    </g>
+                </svg>
+            `;
+        }
+
+        const flowerContainer = document.getElementById('flowerContainer');
+        const interactiveArea = document.getElementById('interactiveArea');
+
+        function plantInitialGarden() {
+            flowerContainer.innerHTML = '<div class="flower-meadow" id="flowerMeadow"></div>';
+            const meadow = document.getElementById('flowerMeadow');
+            const flowerCount = Math.max(24, Math.min(46, Math.floor(window.innerWidth / 30)));
+
+            for (let i = 0; i < flowerCount; i++) {
+                const seedLeft = (i / flowerCount) * 100;
+                const isCluster = Math.random() > 0.8;
+                const clusterCount = isCluster ? 2 + Math.floor(Math.random() * 3) : 1;
+
+                for (let c = 0; c < clusterCount; c++) {
+                    spawnFlowerInGarden(seedLeft + (Math.random() * 7 - 3.5), meadow);
+                }
+            }
+        }
+
+        function spawnFlowerInGarden(leftPercent, target = flowerContainer) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flower-wrap';
+            wrapper.style.left = `${Math.min(97, Math.max(2, leftPercent))}%`;
+            wrapper.style.animationDelay = `${Math.random() * 2}s`;
+            wrapper.style.transform = `scale(${0.8 + Math.random() * 0.9})`;
+            wrapper.style.opacity = String(0.8 + Math.random() * 0.2);
+            wrapper.innerHTML = createRealisticFlowerSVG(0.9 + Math.random() * 0.8);
+
+            wrapper.addEventListener('click', (e) => {
+                e.stopPropagation();
+                triggerSparkles(e.clientX, e.clientY);
+                wrapper.style.transform = 'scale(1.18)';
+                setTimeout(() => {
+                    wrapper.style.transform = `scale(${0.8 + Math.random() * 0.9})`;
+                }, 260);
+            });
+
+            target.appendChild(wrapper);
+        }
+
+        // Spawn Floating Flowers & Sparkles Anywhere on Tap/Click
+        interactiveArea.addEventListener('click', (e) => {
+            triggerSparkles(e.clientX, e.clientY);
+
+            const tempFlower = document.createElement('div');
+            tempFlower.className = 'fixed z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-out';
+            tempFlower.style.left = `${e.clientX}px`;
+            tempFlower.style.top = `${e.clientY}px`;
+            tempFlower.style.scale = '0';
+            tempFlower.style.opacity = '0';
+            tempFlower.innerHTML = createRealisticFlowerSVG(1.2 + Math.random() * 0.8);
+
+            document.body.appendChild(tempFlower);
+
+            requestAnimationFrame(() => {
+                tempFlower.style.scale = '1.2';
+                tempFlower.style.opacity = '1';
+            });
+
+            setTimeout(() => {
+                tempFlower.style.scale = '0.6';
+                tempFlower.style.opacity = '0';
+                setTimeout(() => tempFlower.remove(), 500);
+            }, 1200);
+        });
+
+        // Sparkle Particles Effect
+        function triggerSparkles(x, y) {
+            const colors = ['#facc15', '#fef08a', '#eab308', '#ffffff'];
+            for (let i = 0; i < 15; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle-particle z-40';
+                sparkle.style.left = `${x + (Math.random() * 60 - 30)}px`;
+                sparkle.style.top = `${y + (Math.random() * 60 - 30)}px`;
+                
+                const size = Math.random() * 8 + 4;
+                sparkle.style.width = `${size}px`;
+                sparkle.style.height = `${size}px`;
+                sparkle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                sparkle.style.borderRadius = '50%';
+                sparkle.style.boxShadow = '0 0 10px #facc15';
+
+                document.body.appendChild(sparkle);
+
+                setTimeout(() => sparkle.remove(), 1800);
+            }
+        }
+
+        const surpriseBtn = document.getElementById('surpriseBtn');
+        surpriseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            if (!isPlaying) {
+                toggleAudio();
+            }
+
+            confetti({
+                particleCount: 160,
+                spread: 100,
+                origin: { y: 0.6 },
+                colors: ['#facc15', '#eab308', '#fef08a', '#ffffff', '#22c55e', '#f59e0b']
+            });
+
+            const meadow = document.getElementById('flowerMeadow') || flowerContainer;
+            for (let i = 0; i < 18; i++) {
+                const left = 6 + Math.random() * 88;
+                spawnFlowerInGarden(left, meadow);
+            }
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            plantInitialGarden();
+        });
+
+        plantInitialGarden();
+
+        window.addEventListener('resize', () => {
+            plantInitialGarden();
+        });
+    </script>
+</body>
 </html>
