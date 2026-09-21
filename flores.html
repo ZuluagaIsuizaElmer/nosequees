@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -138,9 +138,8 @@
     </header>
 
     <!-- Hidden Audio Element for YouTube Audio Stream / Direct MP3 -->
-    <audio id="bgAudio" loop preload="auto">
-        <!-- Relaxing romantic background instrumental alternative -->
-        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-piano-112189.mp3" type="audio/mpeg">
+    <audio id="bgAudio" loop preload="none">
+        <!-- El audio se carga solo cuando el usuario lo activa para evitar errores de red en la carga inicial -->
     </audio>
 
     <!-- Main Content Area -->
